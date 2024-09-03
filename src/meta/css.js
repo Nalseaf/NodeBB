@@ -151,6 +151,7 @@ async function copyFontAwesomeFiles() {
 			);
 		}
 	}
+	
 	await Promise.all(copyOperations);
 }
 
