@@ -151,8 +151,10 @@ async function copyFontAwesomeFiles() {
 			);
 		}
 	}
+
 	await Promise.all(copyOperations);
 }
+
 async function filterMissingFiles(filepaths) {
 	const exists = await Promise.all(
 		filepaths.map(async (filepath) => {
@@ -204,24 +206,38 @@ async function getBundleMetadata(target) {
 		path.join(utils.getFontawesomePath(), 'scss'),
 	];
 
-	// Low complexitity skin support
-	let skin;
+	// Skin support
+	let skin = '';
 	let isCustomSkin = false;
+
 	if (target.startsWith('client-')) {
-		skin = target.split('-').slice(1).join('-');
-		const isBootswatchSkin = CSS.supportedSkins.includes(skin);
-		isCustomSkin = !isBootswatchSkin && await CSS.isCustomSkin(skin);
+		const targetSkin = target.split('-').slice(1).join('-');
+		const isBootswatchSkin = CSS.supportedSkins.includes(targetSkin);
+
+		isCustomSkin = !isBootswatchSkin && await CSS.isCustomSkin(targetSkin);
+		skin = (isBootswatchSkin || isCustomSkin) ? targetSkin : ''; // if it's not a valid skin, don't set it
+
 		target = 'client';
-		if (!isBootswatchSkin && !isCustomSkin) {
-			skin = ''; // invalid skin or deleted use default
-		}
 	}
 
-   let themeData = null;
-    if (target === 'client') {
-        themeData = await fetchThemeData(skin, isCustomSkin);
-        addThemePaths(paths, themeData);
-    }
+
+	let themeData = {};
+
+	if (target === 'client') {
+		themeData = await db.getObjectFields('config', ['theme:type', 'theme:id', 'useBSVariables', 'bsVariables']);
+		const themeId = (themeData['theme:id'] || 'nodebb-theme-harmony');
+		const baseThemePath = path.join(
+			nconf.get('themes_path'),
+			(themeData['theme:type'] && themeData['theme:type'] === 'local' ? themeId : 'nodebb-theme-harmony')
+		);
+		paths.unshift(baseThemePath);
+		paths.unshift(`${baseThemePath}/node_modules`);
+		themeData.bsVariables = parseInt(themeData.useBSVariables, 10) === 1 ? (themeData.bsVariables || '') : '';
+		themeData.bootswatchSkin = skin;
+		themeData.isCustomSkin = isCustomSkin;
+		const customSkin = isCustomSkin ? await CSS.getCustomSkin(skin) : null;
+		themeData._variables = customSkin && customSkin._variables;
+	}
 
 	const [scssImports, cssImports, acpScssImports] = await Promise.all([
 		filterGetImports(plugins.scssFiles, '.scss'),
