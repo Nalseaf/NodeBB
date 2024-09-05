@@ -154,7 +154,6 @@ async function copyFontAwesomeFiles() {
 	
 	await Promise.all(copyOperations);
 }
-
 async function filterMissingFiles(filepaths) {
 	const exists = await Promise.all(
 		filepaths.map(async (filepath) => {
