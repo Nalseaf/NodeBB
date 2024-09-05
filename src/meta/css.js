@@ -207,22 +207,19 @@ async function getBundleMetadata(target) {
 	];
 
 	// Skin support
-	let skin = '';
+	let skin;
 	let isCustomSkin = false;
-
 	if (target.startsWith('client-')) {
-		const targetSkin = target.split('-').slice(1).join('-');
-		const isBootswatchSkin = CSS.supportedSkins.includes(targetSkin);
-
-		isCustomSkin = !isBootswatchSkin && await CSS.isCustomSkin(targetSkin);
-		skin = (isBootswatchSkin || isCustomSkin) ? targetSkin : ''; // if it's not a valid skin, don't set it
-
+		skin = target.split('-').slice(1).join('-');
+		const isBootswatchSkin = CSS.supportedSkins.includes(skin);
+		isCustomSkin = !isBootswatchSkin && await CSS.isCustomSkin(skin);
 		target = 'client';
+		if (!isBootswatchSkin && !isCustomSkin) {
+			skin = ''; // invalid skin or deleted use default
+		}
 	}
 
-
-	let themeData = {};
-
+	let themeData = null;
 	if (target === 'client') {
 		themeData = await db.getObjectFields('config', ['theme:type', 'theme:id', 'useBSVariables', 'bsVariables']);
 		const themeId = (themeData['theme:id'] || 'nodebb-theme-harmony');
