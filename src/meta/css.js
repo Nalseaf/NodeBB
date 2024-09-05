@@ -204,7 +204,7 @@ async function getBundleMetadata(target) {
 		path.join(utils.getFontawesomePath(), 'scss'),
 	];
 
-	// Skin support
+	// Low complexitity skin support
 	let skin;
 	let isCustomSkin = false;
 	if (target.startsWith('client-')) {
@@ -217,22 +217,11 @@ async function getBundleMetadata(target) {
 		}
 	}
 
-	let themeData = null;
-	if (target === 'client') {
-		themeData = await db.getObjectFields('config', ['theme:type', 'theme:id', 'useBSVariables', 'bsVariables']);
-		const themeId = (themeData['theme:id'] || 'nodebb-theme-harmony');
-		const baseThemePath = path.join(
-			nconf.get('themes_path'),
-			(themeData['theme:type'] && themeData['theme:type'] === 'local' ? themeId : 'nodebb-theme-harmony')
-		);
-		paths.unshift(baseThemePath);
-		paths.unshift(`${baseThemePath}/node_modules`);
-		themeData.bsVariables = parseInt(themeData.useBSVariables, 10) === 1 ? (themeData.bsVariables || '') : '';
-		themeData.bootswatchSkin = skin;
-		themeData.isCustomSkin = isCustomSkin;
-		const customSkin = isCustomSkin ? await CSS.getCustomSkin(skin) : null;
-		themeData._variables = customSkin && customSkin._variables;
-	}
+   let themeData = null;
+    if (target === 'client') {
+        themeData = await fetchThemeData(skin, isCustomSkin);
+        addThemePaths(paths, themeData);
+    }
 
 	const [scssImports, cssImports, acpScssImports] = await Promise.all([
 		filterGetImports(plugins.scssFiles, '.scss'),
